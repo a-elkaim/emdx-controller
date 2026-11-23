@@ -1,0 +1,19 @@
+/target
+.env
+*.log
+.DS_Store
+
+# Samsung app package used for reverse engineering (proprietary, never commit)
+*.apk
+com.samsung.android.ePaperApp.zip
+
+# Reverse-engineering scratch (extracted APKs, dex, smali) — proprietary, never commit
+re/
+
+# Reverse-engineering notes (static analysis of the Samsung app) — keep local, never commit
+docs/dev-menu-gate.md
+docs/dev-menu-patch.md
+docs/slideshow-reverse-engineering.md
+docs/background-color-reverse-engineering.md
+docs/thumbnail-reverse-engineering.md
+docs/ble-setup.md

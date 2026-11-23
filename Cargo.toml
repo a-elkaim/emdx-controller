@@ -1,0 +1,59 @@
+[package]
+name = "emdx-controller"
+version = "0.1.0"
+edition = "2021"
+description = "Unofficial controller for EMDX e-paper displays: Bluetooth setup, images and settings, from a CLI or an embedded web UI."
+license = "ISC"
+rust-version = "1.85"
+
+[lib]
+name = "emdx_controller"
+path = "src/lib.rs"
+
+[[bin]]
+name = "emdx"
+path = "src/bin/emdx/main.rs"
+
+[dependencies]
+anyhow = "1"
+bcrypt = "0.17"
+bluer = { version = "0.17", features = ["bluetoothd"], optional = true }
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "multipart", "query", "tokio"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+clap = { version = "4", features = ["derive", "env"] }
+dotenvy = "0.15"
+if-addrs = "0.13"
+ab_glyph = "0.2"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif", "bmp"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+# Self-signed certificate of the HTTPS thumbnail receiver (`emdx thumbnail --secure`)
+rcgen = "0.13"
+rpassword = "7"
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "fs", "sync", "io-util", "signal", "process"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+uuid = { version = "1", features = ["v4"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["std", "fmt", "ansi", "env-filter", "registry"] }
+# Wi-Fi networks around this computer, for the setup dialog (nl80211 on Linux, the
+# WLAN API on Windows, CoreWLAN on macOS)
+wifi_scan = "0.7"
+
+[features]
+default = ["ble"]
+# Bluetooth LE provisioning of new displays (Linux/BlueZ via D-Bus)
+ble = ["dep:bluer"]
+
+[dev-dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "multipart"] }
+tempfile = "3"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

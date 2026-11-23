@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>emdx</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='5' y='3' width='22' height='26' rx='3' fill='%23f4f1ea' stroke='%231c1b19' stroke-width='2'/%3E%3Crect x='9' y='8' width='14' height='3' fill='%23d4441c'/%3E%3Crect x='9' y='14' width='10' height='2' fill='%231c1b19'/%3E%3Crect x='9' y='19' width='12' height='2' fill='%231c1b19'/%3E%3C/svg%3E">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"></span>
+      <span class="word">emdx</span>
+      <span class="tag">e-paper displays</span>
+    </div>
+    <nav class="top-actions">
+      <button class="btn ghost" id="btn-add" title="A display that is already set up and on your network">Add an already set up display</button>
+      <button class="btn accent" id="btn-provision" hidden>Set up a new display</button>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <h2 class="eyebrow">Displays</h2>
+      <ul id="display-list" class="display-list"></ul>
+      <p id="empty-list" class="muted small" hidden>
+        No display saved yet. Set one up over Bluetooth, find it on the network, or add it by address.
+      </p>
+    </aside>
+
+    <section id="detail" class="detail">
+      <div class="placeholder-panel">
+        <p class="muted">Select a display.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Add a display that is already set up -->
+  <dialog id="dlg-add" class="sheet wide">
+    <form method="dialog" id="form-add" class="stack">
+      <h3>Add an already set up display</h3>
+      <p class="muted small">For a display that is already set up and on your network. A new or
+        factory-reset one is set up with <strong>Set up a new display</strong> instead.</p>
+      <fieldset>
+        <legend>On your network</legend>
+        <div class="scan-row">
+          <button type="button" class="btn ghost" id="btn-discover">Search again</button>
+          <span id="discover-status" class="muted small"></span>
+        </div>
+        <ul id="discover-list" class="choice-list"></ul>
+      </fieldset>
+      <label>Name <input name="name" required pattern="[A-Za-z0-9_-]{1,32}" placeholder="lobby" autocomplete="off"></label>
+      <div class="row2">
+        <label>IP address <input name="host" required placeholder="192.168.1.34" autocomplete="off"></label>
+        <label>Display PIN <input name="pin" required inputmode="numeric" pattern="\d{6}" placeholder="6 digits" autocomplete="off"></label>
+      </div>
+      <label><span>MAC address <span class="muted">(optional, for Wake-on-LAN; read from the display when possible)</span></span>
+        <input name="mac" placeholder="B0:F2:F6:55:0D:0B" autocomplete="off"></label>
+      <p class="muted small">The display PIN is the one chosen during its setup, not the temporary PIN
+        shown on a setup screen.</p>
+      <label class="check"><input type="checkbox" name="verify" checked><span>Check the PIN with the display first</span></label>
+      <label class="check"><input type="checkbox" name="make_default"><span>Make it the default display</span></label>
+      <p class="form-error" hidden></p>
+      <div class="actions">
+        <button class="btn ghost" value="cancel" formnovalidate>Cancel</button>
+        <button class="btn accent" value="ok">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Bluetooth setup -->
+  <dialog id="dlg-provision" class="sheet wide">
+    <form id="form-provision" class="stack">
+      <h3>Set up a new display</h3>
+      <p class="muted small">
+        A new (or factory-reset) display shows a QR code and a 6-digit PIN. This computer connects to it over
+        Bluetooth, puts it on your network, then finishes the setup over the network.
+      </p>
+
+      <fieldset>
+        <legend>1 · The display</legend>
+        <div class="scan-row">
+          <button type="button" class="btn ghost" id="btn-scan">Scan Bluetooth</button>
+          <span id="scan-status" class="muted small"></span>
+        </div>
+        <ul id="scan-list" class="choice-list"></ul>
+        <div class="row2">
+          <label><span>Pairing PIN <span class="muted">(under the QR code)</span></span><input name="pairingPin" inputmode="numeric" pattern="\d{6}" minlength="6" maxlength="6" required placeholder="6 digits" autocomplete="off"></label>
+          <label><span>Display Name</span><input name="name" required pattern="[A-Za-z0-9_-]{1,32}" maxlength="32" placeholder="lobby" autocomplete="off"></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>2 · Wi-Fi</legend>
+        <div class="wifi-pick" id="wifi-pick">
+          <label for="wifi-select">Network</label>
+          <div class="wifi-select-row">
+            <select id="wifi-select"></select>
+            <button type="button" class="btn ghost" id="btn-wifi-scan" title="Scan for Wi-Fi networks again">Rescan</button>
+          </div>
+          <p id="wifi-status" class="wifi-status muted small" aria-live="polite"></p>
+        </div>
+        <div class="row2">
+          <label id="ssid-field">Wi-Fi name <input name="ssid" autocomplete="off"></label>
+          <label>Password <input name="password" type="password" autocomplete="new-password"></label>
+        </div>
+        <p class="hint small" id="wifi-hint">The display only joins 2.4 GHz networks. Its address is assigned automatically (DHCP).</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>3 · Display settings</legend>
+        <p class="muted small">"Keep" leaves the display's own setting.</p>
+        <div class="row2">
+          <label>Orientation
+            <select name="orientation">
+              <option value="">Keep</option>
+              <option value="landscape">Landscape</option>
+              <option value="portrait">Portrait</option>
+            </select></label>
+          <label>Sleep after new content
+            <select name="sleepTime">
+              <option value="">Keep</option>
+              <option value="off">Never</option>
+              <option value="5">5 minutes</option>
+              <option value="10">10 minutes</option>
+              <option value="20">20 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="60">60 minutes</option>
+            </select></label>
+        </div>
+        <div class="row2">
+          <label>Network standby
+            <select name="networkStandby">
+              <option value="">Keep</option>
+              <option value="on">On (reachable while asleep)</option>
+              <option value="off">Off (saves battery)</option>
+            </select></label>
+          <label>Screen protection time <input type="time" name="dailyRefresh"></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>4 · Finish</legend>
+        <div class="row2">
+          <label><span>Display PIN</span><input name="displayPin" type="password" inputmode="numeric" pattern="\d{6}" minlength="6" maxlength="6" required placeholder="6 digits" autocomplete="new-password"></label>
+          <label><span>Enter the display PIN again</span><input name="displayPinAgain" type="password" inputmode="numeric" pattern="\d{6}" minlength="6" maxlength="6" required autocomplete="new-password"></label>
+        </div>
+        <p class="notice warn small">Remember this PIN. If you forget it, you'll need to reset your device.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>5 · Terms &amp; conditions</legend>
+        <label class="check"><input type="checkbox" name="acceptTerms">
+          <span>(Optional) Accept Samsung's terms &amp; conditions <span class="muted">(only needed for Samsung's online services; images work without)</span></span></label>
+      </fieldset>
+
+      <pre id="provision-log" class="log" hidden></pre>
+      <p class="form-error" hidden></p>
+      <div class="actions">
+        <button type="button" class="btn ghost" data-close>Close</button>
+        <button type="submit" class="btn accent inactive" id="btn-provision-go" aria-disabled="true">Set up</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Forget -->
+  <dialog id="dlg-thumb" class="lightbox" aria-label="Thumbnail at full size">
+    <img alt="">
+  </dialog>
+
+  <dialog id="dlg-network" class="sheet narrow">
+    <form id="form-network" class="stack">
+      <h3>EMDX Settings</h3>
+      <p class="muted">How emdx reaches this display. Shared with the <span class="mono">emdx</span> command line.</p>
+      <label>Name <input name="rename" pattern="[A-Za-z0-9_-]{1,32}" required></label>
+      <label>IP address <input name="host" required></label>
+      <label>Saved PIN <input name="pin" inputmode="numeric" pattern="\d{6}"></label>
+      <p class="muted small">What emdx uses to connect; saving it doesn't change the display. To change
+        the display's own PIN, use <strong>Display PIN</strong> in Display settings.</p>
+      <label>MAC address <input name="mac" placeholder="for Wake-on-LAN"></label>
+      <p class="form-error" hidden></p>
+      <div class="actions">
+        <button type="button" class="btn danger" id="network-forget" title="Put display settings back to their default, delete user content, and remove display from EMDX.">Forget display…</button>
+        <span class="grow"></span>
+        <button type="button" class="btn ghost" id="network-default">Make default</button>
+        <button type="button" class="btn ghost" data-close>Cancel</button>
+        <button type="submit" class="btn" id="network-save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-pin" class="sheet narrow">
+    <form id="form-pin" class="stack">
+      <h3 id="pin-title">Change PIN</h3>
+      <p class="muted">The display asks for this PIN on every connection, from emdx and from the
+        phone app. emdx saves it once the display accepts it.</p>
+      <label>New PIN <input name="pin" type="password" inputmode="numeric" pattern="\d{6}" minlength="6" maxlength="6" required autocomplete="new-password" placeholder="6 digits"></label>
+      <label>Enter the PIN again <input name="again" type="password" inputmode="numeric" pattern="\d{6}" minlength="6" maxlength="6" required autocomplete="new-password" placeholder="6 digits"></label>
+      <p class="muted small" id="pin-check" aria-live="polite"></p>
+      <p class="notice warn">Remember this PIN. If you forget it, you'll need to reset your device.</p>
+      <p class="form-error" hidden></p>
+      <div class="actions">
+        <button type="button" class="btn ghost" data-close>Cancel</button>
+        <button type="submit" class="btn" id="pin-save" disabled>Change PIN</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-forget" class="sheet narrow">
+    <form id="form-forget" class="stack">
+      <h3 id="forget-title"></h3>
+      <p class="muted">Its settings go back to their defaults, its user content is deleted, and it is
+        removed from emdx (here and in the <span class="mono">emdx</span> command line). This can't be undone.</p>
+      <p class="notice warn">To set it up again afterwards, factory reset it on the display: hold its
+        <strong>Bluetooth</strong> and <strong>Next</strong> buttons together for <strong>5 seconds</strong>,
+        then wait for the setup screen with the QR code to come back.</p>
+      <p class="form-error" hidden></p>
+      <div class="actions">
+        <button type="button" class="btn ghost" data-close>Cancel</button>
+        <button type="button" class="btn ghost" id="forget-anyway" hidden>Remove from emdx anyway</button>
+        <button type="submit" class="btn danger" id="forget-go">Delete content and forget</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-slideshow" class="sheet slideshow-editor">
+    <form method="dialog" class="stack" onsubmit="return false">
+      <h3 id="slideshow-title">Slideshow</h3>
+      <div class="slideshow-top">
+        <label>Name <input id="slideshow-name" maxlength="64" placeholder="emdx slideshow (optional)" autocomplete="off"></label>
+        <div class="slideshow-timing">
+          <span class="field-label">Change image every</span>
+          <span class="slide-every">
+            <input type="number" id="slideshow-h" min="0" max="24" step="1" inputmode="numeric" aria-label="Hours"> h
+            <input type="number" id="slideshow-m" min="0" max="59" step="1" inputmode="numeric" aria-label="Minutes"> min</span>
+          <span class="muted small">5 min to 24 h</span>
+        </div>
+      </div>
+      <section class="slideshow-images">
+        <div class="slideshow-head">
+          <span class="field-label">Images, in the order shown</span>
+          <span class="muted small" id="slideshow-loop"></span>
+        </div>
+        <div class="slideshow-grid" id="slideshow-grid"></div>
+        <p class="muted small">Drag an image to move it (or use ← →). Drop files here to add them. After the last image, it starts again.</p>
+      </section>
+      <p class="upload-status" id="slideshow-status" aria-live="polite" hidden></p>
+      <div class="actions">
+        <span class="muted small save-state" id="slideshow-saved" aria-live="polite"></span>
+        <span class="grow"></span>
+        <button type="button" class="btn ghost" data-close>Close</button>
+        <button type="button" class="btn accent" id="slideshow-send">Send to display</button>
+      </div>
+    </form>
+    <div id="slideshow-sent" class="slideshow-sent" hidden>
+      <div class="sent-check" aria-hidden="true">✓</div>
+      <h3>Slideshow sent</h3>
+      <p class="muted" id="slideshow-sent-detail"></p>
+      <div class="actions">
+        <span class="grow"></span>
+        <button type="button" class="btn accent" data-close>Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Deep sleep warning -->
+  <dialog id="dlg-deep-sleep" class="sheet narrow">
+    <form method="dialog" id="form-deep-sleep" class="stack">
+      <h3 id="deep-sleep-title"></h3>
+      <p class="notice warn">It can't be woken up over the network afterwards, not even with
+        <strong>Wake</strong> (Wake-on-LAN). Someone has to press its <strong>power button</strong>.</p>
+      <label class="check"><input type="checkbox" name="skip"><span>Don't show this again</span></label>
+      <div class="actions">
+        <button class="btn ghost" value="cancel">Cancel</button>
+        <button class="btn danger" value="ok">Deep sleep</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Confirm -->
+  <dialog id="dlg-confirm" class="sheet narrow">
+    <form method="dialog" class="stack">
+      <h3 id="confirm-title"></h3>
+      <p id="confirm-text" class="muted"></p>
+      <div class="actions">
+        <button class="btn ghost" value="cancel">Cancel</button>
+        <button class="btn danger" value="ok" id="confirm-ok">Confirm</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
